@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Team 2 — Contribution Tracker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f4f6f9; color: #1a1a1a; display: flex; height: 100vh; overflow: hidden; }
+  .sidebar { width: 260px; min-width: 260px; background: #1a1a2e; color: #fff; display: flex; flex-direction: column; }
+  .sidebar-header { padding: 20px 16px 12px; border-bottom: 1px solid #2a2a4a; }
+  .sidebar-header h2 { font-size: 1rem; color: #76b900; margin-bottom: 4px; }
+  .sidebar-header p { font-size: 0.75rem; color: #999; }
+  .sidebar-actions { padding: 12px 16px; }
+  .btn-add-user { width: 100%; background: #76b900; color: #fff; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
+  .btn-add-user:hover { background: #5a9400; }
+  .user-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+  .user-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer; border-left: 3px solid transparent; transition: all .15s; }
+  .user-item:hover { background: #2a2a4a; }
+  .user-item.active { background: #2a2a4a; border-left-color: #76b900; }
+  .user-avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; color: #fff; flex-shrink: 0; }
+  .user-meta { flex: 1; min-width: 0; }
+  .user-meta .name { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-meta .login { font-size: 0.72rem; color: #888; }
+  .user-delete { background: none; border: none; color: #666; cursor: pointer; font-size: 1rem; padding: 2px 6px; border-radius: 4px; }
+  .user-delete:hover { color: #e53935; background: rgba(229,57,53,.15); }
+  .sidebar-footer { padding: 12px 16px; border-top: 1px solid #2a2a4a; display: flex; gap: 8px; }
+  .btn-export { flex: 1; background: #1565c0; color: #fff; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+  .btn-export:hover { background: #0d47a1; }
+  .btn-save-all { flex: 1; background: #2e7d32; color: #fff; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+  .btn-save-all:hover { background: #1b5e20; }
+  .main { flex: 1; overflow-y: auto; padding: 24px 32px; }
+  .welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #999; }
+  .welcome h2 { color: #76b900; margin-bottom: 8px; }
+  .section { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.08); padding: 20px; margin-bottom: 20px; }
+  .section h2 { font-size: 1.05rem; color: #333; margin-bottom: 12px; border-bottom: 2px solid #76b900; padding-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+  th { background: #76b900; color: #fff; text-align: left; padding: 8px 10px; }
+  td { padding: 8px 10px; border-bottom: 1px solid #e0e0e0; vertical-align: middle; }
+  tr:nth-child(even) { background: #f9fafb; }
+  input[type=text], input[type=number], textarea, select { width: 100%; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.84rem; font-family: inherit; }
+  textarea { resize: vertical; min-height: 44px; }
+  .add-row-btn { background: #76b900; color: #fff; border: none; padding: 7px 14px; border-radius: 4px; cursor: pointer; font-size: 0.82rem; margin-top: 8px; }
+  .add-row-btn:hover { background: #5a9400; }
+  .remove-btn { background: #e53935; color: #fff; border: none; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 0.78rem; }
+  .kpi-num { width: 100%; text-align: center; }
+  .note-small { font-size: 0.76rem; color: #777; }
+  .page-title { font-size: 1.4rem; color: #76b900; margin-bottom: 2px; }
+  .page-sub { font-size: 0.85rem; color: #666; margin-bottom: 20px; }
+  .release-badge { display: inline-block; background: #76b900; color: #fff; padding: 2px 10px; border-radius: 10px; font-size: 0.78rem; font-weight: 600; margin-left: 8px; }
+  .toast { position: fixed; bottom: 20px; right: 20px; background: #2e7d32; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 0.88rem; z-index: 999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,.2); }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center; z-index: 100; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: #fff; border-radius: 10px; padding: 24px; width: 360px; box-shadow: 0 8px 30px rgba(0,0,0,.2); }
+  .modal h3 { margin-bottom: 16px; color: #333; }
+  .modal label { font-size: 0.84rem; font-weight: 600; display: block; margin-bottom: 4px; margin-top: 12px; }
+  .modal input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.88rem; }
+  .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-btns button { flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.88rem; font-weight: 600; }
+  .modal-btns .btn-cancel { background: #eee; color: #333; }
+  .modal-btns .btn-ok { background: #76b900; color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-header">
+    <h2>🏆 Team 2 Tracker</h2>
+    <p>Captain: Ishani | Release 7.2.6.0 RC</p>
+  </div>
+  <div class="sidebar-actions">
+    <button class="btn-add-user" onclick="showAddModal()">+ Add Team Member</button>
+  </div>
+  <div class="user-list" id="userList"></div>
+  <div class="sidebar-footer">
+    <button class="btn-save-all" onclick="saveAll()">💾 Save All</button>
+    <button class="btn-export" onclick="exportAllCSV()">📥 Export CSV</button>
+  </div>
+</div>
+
+<div class="main" id="mainContent">
+  <div class="welcome">
+    <h2>Team 2 — Contribution Tracker</h2>
+    <p>Add team members using the sidebar, then click a name to fill their data.</p>
+    <p style="margin-top:12px;font-size:0.82rem;color:#aaa;">All data saved in browser localStorage — persists across refreshes.</p>
+  </div>
+</div>
+
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <h3>Add Team Member</h3>
+    <label>Full Name *</label>
+    <input type="text" id="modalName" placeholder="e.g. Rahul Sharma">
+    <label>NVIDIA Username *</label>
+    <input type="text" id="modalLogin" placeholder="e.g. rahuls">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="hideAddModal()">Cancel</button>
+      <button class="btn-ok" onclick="addUser()">Add</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'team2_tracker_v2';
+const COLORS = ['#76b900','#1565c0','#e65100','#6a1b9a','#00838f','#c62828','#2e7d32','#ef6c00','#283593','#4e342e'];
+
+const KPI_DEFS = [
+  { key:'bugsFiled',   label:'Product Bugs Filed',              icon:'🐛', input:'number' },
+  { key:'manualTests', label:'Manual Tests Executed / Day',     icon:'🧪', input:'number' },
+  { key:'autoFixed',   label:'Automation Bugs Fixed',           icon:'⚙️', input:'number' },
+  { key:'vtcPmd',      label:'VTC / PMD',                      icon:'⏱️', input:'select', opts:['','All within SLA','Mostly within SLA','SLA breaches'], hint:'Within SLA for all bugs' },
+  { key:'ntcas',       label:'NTCAs',                           icon:'📋', input:'number' },
+  { key:'bugsFixed',   label:'Product Bugs Fixed',              icon:'🔧', input:'number' },
+  { key:'autoEar',     label:'Automation EAR',                  icon:'🤖', input:'text', hint:'100% EAR maintained' },
+  { key:'testCases',   label:'Test Cases Developed',            icon:'📝', input:'number', hint:'Test Case Owner category' },
+  { key:'ntechPres',   label:'NTECH / Tech Forum Presentations',icon:'🎤', input:'number' },
+  { key:'patents',     label:'Patents',                         icon:'💡', input:'select', opts:['','Filed / In progress','Idea stage','None'] },
+];
+
+const SUPPORT_GROUPS = ['Team 1','Team 3','Team 4','Other'];
+
+function load() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {users:[]}; } catch(e) { return {users:[]}; } }
+function save(d) { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+let data = load();
+let activeId = null;
+
+/* ---- Sidebar ---- */
+function renderSidebar() {
+  const el = document.getElementById('userList');
+  el.innerHTML = '';
+  data.users.forEach((u,i) => {
+    const initials = u.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    const d = document.createElement('div');
+    d.className = 'user-item' + (u.id===activeId?' active':'');
+    d.innerHTML = `<div class="user-avatar" style="background:${COLORS[i%COLORS.length]}">${initials}</div><div class="user-meta"><div class="name">${u.name}</div><div class="login">@${u.login}</div></div><button class="user-delete" title="Remove" onclick="event.stopPropagation();removeUser('${u.id}')">🗑</button>`;
+    d.onclick = () => selectUser(u.id);
+    el.appendChild(d);
+  });
+}
+
+/* ---- Modal ---- */
+function showAddModal() { document.getElementById('addModal').classList.add('show'); document.getElementById('modalName').focus(); }
+function hideAddModal() { document.getElementById('addModal').classList.remove('show'); document.getElementById('modalName').value=''; document.getElementById('modalLogin').value=''; }
+function addUser() {
+  const name = document.getElementById('modalName').value.trim();
+  const login = document.getElementById('modalLogin').value.trim();
+  if (!name||!login) { alert('Both fields required.'); return; }
+  const u = { id:'u_'+Date.now(), name, login, kpis:{}, kpiEv:{}, contribs:[], aiTools:'', aiAgents:'', aiImpact:'', aiHours:'', support:[], topContrib:'', challenges:'', suggestions:'' };
+  data.users.push(u); save(data); hideAddModal(); renderSidebar(); selectUser(u.id); toast(name+' added!');
+}
+function removeUser(id) {
+  const u = data.users.find(x=>x.id===id);
+  if (!confirm('Remove '+u.name+'?')) return;
+  data.users = data.users.filter(x=>x.id!==id); save(data);
+  if (activeId===id) { activeId=null; document.getElementById('mainContent').innerHTML='<div class="welcome"><h2>Select a member</h2></div>'; }
+  renderSidebar();
+}
+
+/* ---- Select & Render ---- */
+function selectUser(id) { if(activeId) collect(); activeId=id; renderSidebar(); renderForm(); }
+function getU(id) { return data.users.find(x=>x.id===id); }
+
+function renderForm() {
+  const u = getU(activeId); if(!u) return;
+  const m = document.getElementById('mainContent');
+
+  // KPI rows
+  let kpiRows = '';
+  KPI_DEFS.forEach((k,i) => {
+    const val = u.kpis[k.key]||'';
+    const ev = u.kpiEv[k.key]||'';
+    let inp;
+    if (k.input==='select') {
+      inp = `<select data-kpi="${k.key}">${k.opts.map(o=>`<option${val===o?' selected':''}>${o||'Select'}</option>`).join('')}</select>`;
+    } else if (k.input==='number') {
+      inp = `<input type="number" class="kpi-num" data-kpi="${k.key}" value="${val}" min="0">`;
+    } else {
+      inp = `<input type="text" data-kpi="${k.key}" value="${esc(val)}" placeholder="${k.hint||''}">`;
+    }
+    const hint = k.hint ? `<br><span class="note-small">${k.hint}</span>` : '';
+    kpiRows += `<tr><td>${i+1}</td><td>${k.icon} <strong>${k.label}</strong>${hint}</td><td>${inp}</td><td><input type="text" data-kpi-ev="${k.key}" value="${esc(ev)}" placeholder="Evidence / link / remarks"></td></tr>`;
+  });
+
+  // Contrib rows
+  let cRows = (u.contribs||[]).map((c,i)=>contribRow(i,c)).join('');
+
+  // Support rows
+  let sRows = (u.support||[]).map((s,i)=>supportRow(i,s)).join('');
+
+  m.innerHTML = `
+    <h1 class="page-title">${u.name} <span class="release-badge">7.2.6.0 RC</span></h1>
+    <p class="page-sub">@${u.login}</p>
+
+    <div class="section"><h2>📊 KPI Scorecard — Release 7.2.6.0 RC</h2>
+      <table><thead><tr><th style="width:28px">#</th><th>KPI</th><th style="width:160px">Actual</th><th style="width:220px">Evidence / Remarks</th></tr></thead>
+      <tbody>${kpiRows}</tbody></table>
+    </div>
+
+    <div class="section"><h2>🤖 AI Tool Adoption</h2>
+      <table id="aiTbl">
+        <thead><tr><th>AI Tool</th><th style="width:130px">Frequency</th><th style="width:160px">Adoption Blocker</th><th style="width:210px">Feedback</th></tr></thead>
+        <tbody>${aiToolRows(u)}</tbody>
+      </table>
+      <p class="note-small" style="margin-top:10px;">Other AI tools used (comma-separated):</p>
+      <input type="text" data-f="aiOther" value="${esc(u.aiOther||'')}" placeholder="e.g. ChatGPT, GitHub Copilot, custom scripts…" style="margin-top:4px;">
+    </div>
+
+    <div class="section"><h2>🤝 Cross-Group Support</h2>
+      <table id="sTbl"><thead><tr><th style="width:28px">#</th><th style="width:130px">Group</th><th>What support?</th><th style="width:170px">Outcome</th><th style="width:42px"></th></tr></thead>
+      <tbody>${sRows}</tbody></table>
+      <button class="add-row-btn" onclick="addS()">+ Add</button>
+    </div>
+
+    <div class="section"><h2>📝 Additional Contributions</h2>
+      <p class="note-small" style="margin-bottom:10px;">Any other contributions beyond release activities, KPIs, AI adoption & cross-group support listed above.</p>
+      <table id="cTbl"><thead><tr><th style="width:28px">#</th><th>What did you do?</th><th style="width:200px">Impact / Outcome</th><th style="width:160px">Evidence / Link</th><th style="width:42px"></th></tr></thead>
+      <tbody>${cRows}</tbody></table>
+      <button class="add-row-btn" onclick="addC()">+ Add</button>
+    </div>
+
+    <div class="section"><h2>🌟 Self-Assessment</h2>
+      <table>
+        <tr><td style="width:240px;font-weight:600">Top contribution this release</td><td><textarea data-f="topContrib" placeholder="What are you most proud of?">${esc(u.topContrib)}</textarea></td></tr>
+        <tr><td style="font-weight:600">Challenges / blockers</td><td><textarea data-f="challenges" placeholder="What slowed you down?">${esc(u.challenges)}</textarea></td></tr>
+        <tr><td style="font-weight:600">Suggestions</td><td><textarea data-f="suggestions" placeholder="Ideas for next cycle">${esc(u.suggestions)}</textarea></td></tr>
+      </table>
+    </div>`;
+}
+
+const AI_TOOLS = [
+  { key:'bugFilingAssistant', label:'Bug Filing Assistant' },
+  { key:'myBugDeets',         label:'MyBugDeets' },
+  { key:'bugFixingTool',      label:'Bug Fixing Tool' },
+  { key:'batAi',              label:'BAT.AI' },
+];
+
+const AI_FREQ = ['','Daily','Weekly','Occasionally','Tried once','Never used'];
+const AI_BLOCKERS = ['','No blocker','Not aware of it','Not useful for my work','Needs training','Tool not stable','Other'];
+
+function aiToolRows(u) {
+  const ai = u.ai || {};
+  return AI_TOOLS.map(t => {
+    const d = ai[t.key] || {};
+    const freq = d.freq || '';
+    const blocker = d.blocker || '';
+    const feedback = d.feedback || '';
+    const freqOpts = AI_FREQ.map(o => `<option value="${o}"${freq===o?' selected':''}>${o||'Select'}</option>`).join('');
+    const blockOpts = AI_BLOCKERS.map(o => `<option value="${o}"${blocker===o?' selected':''}>${o||'Select'}</option>`).join('');
+    return `<tr>
+      <td style="font-weight:600">${t.label}</td>
+      <td><select data-ai-freq="${t.key}">${freqOpts}</select></td>
+      <td><select data-ai-block="${t.key}">${blockOpts}</select></td>
+      <td><input type="text" data-ai-fb="${t.key}" value="${esc(feedback)}" placeholder="Suggestions / comments"></td>
+    </tr>`;
+  }).join('');
+}
+
+function contribRow(i,c) {
+  c=c||{desc:'',impact:'',evidence:''};
+  return `<tr><td>${i+1}</td><td><textarea placeholder="Describe your contribution">${esc(c.desc)}</textarea></td><td><input type="text" value="${esc(c.impact)}" placeholder="Impact / outcome"></td><td><input type="text" value="${esc(c.evidence)}" placeholder="Link / reference"></td><td><button class="remove-btn" onclick="this.closest('tr').remove()">✕</button></td></tr>`;
+}
+function supportRow(i,s) {
+  s=s||{group:SUPPORT_GROUPS[0],desc:'',outcome:''};
+  const opts=SUPPORT_GROUPS.map(x=>`<option${s.group===x?' selected':''}>${x}</option>`).join('');
+  return `<tr><td>${i+1}</td><td><select>${opts}</select></td><td><textarea placeholder="Describe">${esc(s.desc)}</textarea></td><td><input type="text" value="${esc(s.outcome)}" placeholder="Outcome"></td><td><button class="remove-btn" onclick="this.closest('tr').remove()">✕</button></td></tr>`;
+}
+function addC() { const tb=document.querySelector('#cTbl tbody'); tb.insertAdjacentHTML('beforeend',contribRow(tb.rows.length,null)); }
+function addS() { const tb=document.querySelector('#sTbl tbody'); tb.insertAdjacentHTML('beforeend',supportRow(tb.rows.length,null)); }
+
+/* ---- Collect ---- */
+function collect() {
+  const u=getU(activeId); if(!u) return;
+  document.querySelectorAll('[data-kpi]').forEach(el=>{ u.kpis[el.dataset.kpi]=el.tagName==='SELECT'?(el.value==='Select'?'':el.value):el.value; });
+  document.querySelectorAll('[data-kpi-ev]').forEach(el=>{ u.kpiEv[el.dataset.kpiEv]=el.value; });
+  u.contribs=[];
+  document.querySelectorAll('#cTbl tbody tr').forEach(tr=>{ const c=tr.querySelectorAll('textarea,input'); u.contribs.push({desc:c[0]?.value||'',impact:c[1]?.value||'',evidence:c[2]?.value||''}); });
+  ['topContrib','challenges','suggestions','aiOther'].forEach(f=>{ const el=document.querySelector(`[data-f="${f}"]`); if(el) u[f]=el.value; });
+  u.ai = u.ai || {};
+  AI_TOOLS.forEach(t=>{
+    u.ai[t.key] = {
+      freq: document.querySelector(`[data-ai-freq="${t.key}"]`)?.value||'',
+      blocker: document.querySelector(`[data-ai-block="${t.key}"]`)?.value||'',
+      feedback: document.querySelector(`[data-ai-fb="${t.key}"]`)?.value||''
+    };
+  });
+  u.support=[];
+  document.querySelectorAll('#sTbl tbody tr').forEach(tr=>{ const c=tr.querySelectorAll('select,textarea,input'); u.support.push({group:c[0]?.value||'',desc:c[1]?.value||'',outcome:c[2]?.value||''}); });
+}
+
+function saveAll() { if(activeId) collect(); save(data); toast('✅ All data saved!'); }
+
+/* ---- Export ---- */
+function exportAllCSV() {
+  if(activeId) collect();
+  let cols=['Name','Username'];
+  KPI_DEFS.forEach(k=>{ cols.push(k.label+' (Actual)',k.label+' (Evidence)'); });
+  cols.push('AI Other Tools');
+  AI_TOOLS.forEach(t=>{ cols.push(t.label+' Frequency',t.label+' Blocker',t.label+' Feedback'); });
+  cols.push('Contributions','Cross-Group Support');
+  cols.push('Top Contribution','Challenges','Suggestions');
+  let rows=[cols.map(c=>'"'+c.replace(/"/g,'""')+'"').join(',')];
+  data.users.forEach(u=>{
+    let r=[u.name,u.login];
+    KPI_DEFS.forEach(k=>{ r.push(u.kpis[k.key]||'',u.kpiEv[k.key]||''); });
+    r.push(u.aiOther||'');
+    const ai=u.ai||{};
+    AI_TOOLS.forEach(t=>{ const d=ai[t.key]||{}; r.push(d.freq||'',d.blocker||'',d.feedback||''); });
+    r.push((u.contribs||[]).map(c=>[c.desc,c.impact,c.evidence].join(' | ')).join(' ;; '));
+    r.push((u.support||[]).map(s=>[s.group,s.desc,s.outcome].join(' | ')).join(' ;; '));
+    r.push(u.topContrib||'',u.challenges||'',u.suggestions||'');
+    rows.push(r.map(v=>'"'+String(v).replace(/"/g,'""').replace(/\n/g,' ')+'"').join(','));
+  });
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='team2_7260RC_contributions.csv'; a.click();
+  toast('📥 CSV exported!');
+}
+
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',2500); }
+
+document.getElementById('modalLogin').addEventListener('keydown',e=>{ if(e.key==='Enter') addUser(); });
+document.getElementById('modalName').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('modalLogin').focus(); });
+window.addEventListener('beforeunload',()=>{ if(activeId) collect(); save(data); });
+
+renderSidebar();
+</script>
+</body>
+</html>
